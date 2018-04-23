@@ -42,13 +42,13 @@ cp /usr/share/systemd/bootctl/arch.conf /boot/loader/entries/
 #Copy PARTUUID of root partition
 blkid -s PARTUUID -o value /dev/sdROOT
 nano /boot/loader/entries/arch.conf
-#intel microcode
+#Add "rw relatime" to options.
+#add intel microcode entry
 /boot/loader/entries/entry.conf
 	title   Arch Linux
 	linux   /vmlinuz-linux
 >>	initrd  /intel-ucode.img
 	initrd  /initramfs-linux.img
-#Add "rw relatime" to options.
 
 #useraccount
 useradd -m -G wheel,systemd-journal -s /bin/bash oguz
