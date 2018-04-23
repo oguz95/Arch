@@ -1,0 +1,120 @@
+loadkeys trq
+ping oguz.io
+?wifi-menu
+
+fdisk -l
+cfdisk
+
+#format efi & root partition
+mkfs.fat -F32 /dev/sdEFI #skip if dualbooting
+mkfs.ext4 -O metadata_csum /dev/sdROOT
+
+#mount root then efi partition
+mount /dev/sdROOT /mnt
+mkdir /mnt/boot
+mount /dev/sdEFI /mnt/boot
+
+#install base packages
+pacstrap /mnt base base-devel efibootmgr git intel-ucode ?wpa_supplicant
+
+#generate fstab then confirm && add journal_checksum to fstab
+genfstab -pU /mnt >> /mnt/etc/fstab
+#blkid /dev/sdX1 && blkid /dev/sdX2 && cat /mnt/etc/fstab
+sed -i 's/data=ordered/data=ordered,journal_checksum/' /mnt/etc/fstab
+
+#chroot
+arch-chroot /mnt
+passwd
+#to load the required kernel module for ext4 checksums on boot
+sed -i 's/^MODULES=()/MODULES=(crc32_generic crc32c-intel)/' /etc/mkinitcpio.conf
+#create initramfs image
+mkinitcpio -p linux
+
+#bootloader
+pacman -S efibootmgr
+bootctl --path=/boot install
+nano /boot/loader/loader.conf
+	default arch
+	timeout 3
+	editor 0
+cp /usr/share/systemd/bootctl/arch.conf /boot/loader/entries/
+
+#Copy PARTUUID of root partition
+blkid -s PARTUUID -o value /dev/sdROOT
+nano /boot/loader/entries/arch.conf
+#intel microcode
+/boot/loader/entries/entry.conf
+	title   Arch Linux
+	linux   /vmlinuz-linux
+>>	initrd  /intel-ucode.img
+	initrd  /initramfs-linux.img
+#Add "rw relatime" to options.
+
+#useraccount
+useradd -m -G wheel,systemd-journal -s /bin/bash oguz
+passwd oguz
+sed -i 's/^# %wheel ALL=(ALL) ALL$/%wheel ALL=(ALL) ALL/' /etc/sudoers
+
+#network
+pacman -S networkmanager network-manager-applet gnome-keyring
+systemctl enable NetworkManager.service
+
+#system settings
+echo "arch" > /etc/hostname
+echo -e "127.0.0.1\tarch.localdomain\tarch" >> /etc/hosts
+
+ln -sf /usr/share/zoneinfo/Europe/Istanbul /etc/localtime
+hwclock --systohc --localtime
+
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+echo "KEYMAP=trq" > /etc/vconsole.conf
+##setxkbmap -layout tr
+
+exit
+umount -R /mnt && reboot
+
+#post installation
+#network time protocol
+sudo timedatectl set-ntp true
+
+sudo pacman -S reflector
+sudo reflector --latest 100 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+
+gpg --recv-keys --keyserver hkp://pgp.mit.edu 1EB2638FF56C0C53
+git clone https://aur.archlinux.org/cower.git
+cd cower && makepkg -si && cd .. && rm -rf cower
+
+git clone https://aur.archlinux.org/pacaur.git
+cd pacaur && makepkg -si && cd .. && rm -rf pacaur
+pacaur -Syu
+
+pacman -S xorg-server xorg-xinit xorg-apps
+pacman -S xf86-video-intel mesa
+pacaur -S linux-headers nvidia nvidia-settings mesa vdpauinfo
+pacman -S xorg-twm xorg-xclock xterm
+pacman -S xfce4 xfce4-settings xfce4-taskmanager xfce4-pulseaudio-plugin xfce4-whiskermenu-plugin gtk-engine-murrine lightdm lightdm-gtk-greeter
+	systemctl enable lightdm.service
+pacman -S alsa-utils pulseaudio pavucontrol
+pacman -S tlp
+	systemctl enable tlp.service
+	systemctl enable tlp-sleep.service
+	systemctl mask systemd-rfkill.service
+	systemctl mask systemd-rfkill.socket
+pacman -S gvfs thunar-volman
+
+pacman -S arc-gtk-theme arc-icon-theme
+
+#SSD trim
+systemctl enable fstrim.timer
+
+?optional x86 support
+#Enable multilib in /etc/pacman.conf
+pacaur -S pamac-aur
+pacman -S xdg-user-dirs
+	xdg-user-dirs-update
+
+#Welcome to Arch
+reboot or startx
