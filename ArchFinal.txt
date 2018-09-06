@@ -1,6 +1,9 @@
+#Arch Linux installation notes on UEFI Based computers.
 loadkeys trq
 ping oguz.io
-?wifi-menu
+
+#To use wi-fi instead of ethernet during the installation process.
+wifi-menu
 
 fdisk -l
 cfdisk
@@ -9,13 +12,14 @@ cfdisk
 mkfs.fat -F32 /dev/sdEFI #skip if dualbooting
 mkfs.ext4 -O metadata_csum /dev/sdROOT
 
-#mount root then efi partition
+#mount root & efi partition
 mount /dev/sdROOT /mnt
 mkdir /mnt/boot
 mount /dev/sdEFI /mnt/boot
 
 #install base packages
-pacstrap /mnt base base-devel efibootmgr git intel-ucode ?wpa_supplicant
+pacstrap /mnt base base-devel efibootmgr git intel-ucode 
+#wpa_supplicant
 
 #generate fstab then confirm && add journal_checksum to fstab
 genfstab -pU /mnt >> /mnt/etc/fstab
@@ -80,6 +84,7 @@ umount -R /mnt && reboot
 #network time protocol
 sudo timedatectl set-ntp true
 
+#to sort Arch mirrors by speed
 sudo pacman -S reflector
 sudo reflector --latest 100 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
