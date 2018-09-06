@@ -110,9 +110,10 @@ pacman -S tlp
 	systemctl mask systemd-rfkill.socket
 pacman -S gvfs thunar-volman
 
+#icon themes of my preference
 pacman -S arc-gtk-theme arc-icon-theme
 
-#SSD trim
+#enabling ssd trim support, skip if using hdd
 systemctl enable fstrim.timer
 
 ?optional x86 support
