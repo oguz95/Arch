@@ -1,15 +1,16 @@
-#Arch Linux installation notes on UEFI Based computers.
+#Arch Linux installation on UEFI Based computers.
 loadkeys trq
 ping oguz.io
 
 #To use wi-fi instead of ethernet during the installation process.
 wifi-menu
 
+#Partition the disks
 fdisk -l
 cfdisk
 
 #format efi & root partition
-mkfs.fat -F32 /dev/sdEFI #skip if dualbooting
+mkfs.fat -F32 /dev/sdEFI #Skip if installing Arch as secondary OS.
 mkfs.ext4 -O metadata_csum /dev/sdROOT
 
 #mount root & efi partition
@@ -19,14 +20,14 @@ mount /dev/sdEFI /mnt/boot
 
 #install base packages
 pacstrap /mnt base base-devel efibootmgr git intel-ucode 
-#wpa_supplicant
+wpa_supplicant #If installing from WiFi instead of Ethernet.
 
 #generate fstab then confirm && add journal_checksum to fstab
 genfstab -pU /mnt >> /mnt/etc/fstab
 #blkid /dev/sdX1 && blkid /dev/sdX2 && cat /mnt/etc/fstab
 sed -i 's/data=ordered/data=ordered,journal_checksum/' /mnt/etc/fstab
 
-#chroot
+#Change root into the new system
 arch-chroot /mnt
 passwd
 #to load the required kernel module for ext4 checksums on boot
